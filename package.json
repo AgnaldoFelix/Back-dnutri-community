@@ -1,0 +1,12 @@
+{
+  "name": "essentia-sync-server",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node sync-server.js",
+    "start": "node sync-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
