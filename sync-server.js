@@ -1,75 +1,40 @@
-// sync-server.js - OTIMIZADO PARA CONEXÃO COM FRONTEND
+// sync-server.js - CORRIGIDO PARA NETLIFY + RENDER
 const express = require('express');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Configurações otimizadas para Render + Netlify
-const RENDER_TIMEOUT = 120000; // Aumentado para 120 segundos
-const KEEP_ALIVE_INTERVAL = 25000; // 25 segundos
+const RENDER_TIMEOUT = 120000;
+const KEEP_ALIVE_INTERVAL = 25000;
 
-// Configuração CORS mais permissiva para desenvolvimento
+// Configuração CORS simplificada e eficaz
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Permitir requests sem origin (como mobile apps ou curl)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'https://essentia-community.netlify.app',
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173',
-      'https://essentia-community.netlify.app/'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('netlify')) {
-      callback(null, true);
-    } else {
-      console.log('🔒 Origem bloqueada:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  origin: [
+    'https://essentia-community.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
   credentials: true,
-  optionsSuccessStatus: 200,
-  preflightContinue: false
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
-
-// Aumentar limites do payload
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware de logging melhorado
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   console.log(`🌐 [${timestamp}] ${req.method} ${req.originalUrl}`, {
     origin: req.headers.origin || 'No Origin',
-    'user-agent': req.headers['user-agent']?.substring(0, 80) || 'No User Agent',
-    'content-type': req.headers['content-type'] || 'No Content-Type'
+    ip: req.ip
   });
-  
-  // Headers CORS em todas as respostas
-  res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://essentia-community.netlify.app');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // 24 horas
-  
   next();
-});
-
-// Handler para OPTIONS (preflight) global
-app.options('*', (req, res) => {
-  console.log('🛫 Preflight request recebido');
-  res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://essentia-community.netlify.app');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(200).send();
 });
 
 // Armazenamento em memória
@@ -86,7 +51,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔄 Health Check super detalhado
+// 🔄 Health Check otimizado
 app.get('/health', (req, res) => {
   const healthInfo = {
     status: 'healthy',
@@ -94,47 +59,34 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     serverStartTime: storage.serverStartTime,
     uptime: process.uptime(),
-    memory: {
-      rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
-      heap: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB/${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`
-    },
     storage: {
       onlineUsers: storage.onlineUsers.length,
       chatMessages: storage.chatMessages.length
     },
     environment: process.env.NODE_ENV || 'development',
     frontend: 'https://essentia-community.netlify.app',
-    cors: {
-      allowed: true,
-      origins: ['https://essentia-community.netlify.app', 'localhost']
-    },
-    requestInfo: {
-      origin: req.headers.origin,
-      ip: req.ip,
-      userAgent: req.headers['user-agent']
-    }
+    cors: 'configured'
   };
   
-  console.log('❤️ Health check solicitado por:', req.headers.origin);
+  console.log('❤️ Health check de:', req.headers.origin);
   res.status(200).json(healthInfo);
 });
 
-// 🔄 Endpoint de teste de conexão
-app.get('/test-connection', (req, res) => {
+// 🔄 Endpoint de teste de conexão simplificado
+app.get('/test', (req, res) => {
   const testData = {
     message: '✅ Conexão estabelecida com sucesso!',
     server: 'back-dnutri-community.onrender.com',
     client: req.headers.origin || 'Unknown',
     timestamp: new Date().toISOString(),
-    latency: `${Date.now() - parseInt(req.headers['x-request-time'] || Date.now())}ms`,
     status: 'active'
   };
   
-  console.log('🧪 Teste de conexão bem-sucedido para:', req.headers.origin);
+  console.log('🧪 Teste de conexão para:', req.headers.origin);
   res.json(testData);
 });
 
-// 🔄 Endpoint para obter usuários online
+// 🔄 Endpoint para obter usuários online - CORRIGIDO: RETORNA ARRAY DIRETO
 app.get('/online-users', (req, res) => {
   console.log('📤 Solicitando usuários online. Total:', storage.onlineUsers.length);
   
@@ -146,22 +98,16 @@ app.get('/online-users', (req, res) => {
   });
   
   console.log('📤 Enviando usuários online:', storage.onlineUsers.length);
-  res.json({
-    users: storage.onlineUsers,
-    count: storage.onlineUsers.length,
-    timestamp: new Date().toISOString()
-  });
+  
+  // ✅ CORREÇÃO CRÍTICA: Retorna array diretamente para o .map() do frontend funcionar
+  res.json(storage.onlineUsers);
 });
 
 // 🔄 Endpoint para adicionar/atualizar usuário
 app.post('/online-users', (req, res) => {
   try {
     const user = req.body;
-    console.log('📥 Recebendo usuário:', { 
-      name: user.name, 
-      id: user.id,
-      origin: req.headers.origin 
-    });
+    console.log('📥 Recebendo usuário:', user.name);
     
     if (!user.id || !user.name) {
       return res.status(400).json({
@@ -173,12 +119,11 @@ app.post('/online-users', (req, res) => {
     // Remover usuário existente se houver
     storage.onlineUsers = storage.onlineUsers.filter(u => u.id !== user.id);
     
-    // Adicionar novo usuário com timestamp atualizado
+    // Adicionar novo usuário
     const userData = {
       ...user,
       lastSeen: new Date().toISOString(),
-      connectedAt: new Date().toISOString(),
-      ip: req.ip
+      connectedAt: new Date().toISOString()
     };
     
     storage.onlineUsers.push(userData);
@@ -188,32 +133,26 @@ app.post('/online-users', (req, res) => {
     res.json({ 
       success: true, 
       user: userData,
-      count: storage.onlineUsers.length,
-      timestamp: new Date().toISOString()
+      count: storage.onlineUsers.length
     });
   } catch (error) {
     console.error('❌ Erro ao processar usuário:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message,
-      timestamp: new Date().toISOString()
+      error: error.message
     });
   }
 });
 
-// 🔄 Endpoint para obter mensagens
+// 🔄 Endpoint para obter mensagens - CORRIGIDO: RETORNA ARRAY DIRETO
 app.get('/chat-messages', (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   console.log('📤 Solicitando mensagens. Limit:', limit);
   
   const messages = storage.chatMessages.slice(-limit);
   
-  res.json({
-    messages: messages,
-    count: messages.length,
-    total: storage.chatMessages.length,
-    timestamp: new Date().toISOString()
-  });
+  // ✅ CORREÇÃO CRÍTICA: Retorna array diretamente para o .map() do frontend funcionar
+  res.json(messages);
 });
 
 // 🔄 Endpoint para adicionar mensagem
@@ -228,25 +167,20 @@ app.post('/chat-messages', (req, res) => {
       });
     }
     
-    console.log('💬 Nova mensagem de:', {
-      user: message.userName,
-      message: message.message.substring(0, 100) + (message.message.length > 100 ? '...' : ''),
-      origin: req.headers.origin
-    });
+    console.log('💬 Nova mensagem de:', message.userName);
     
     const newMessage = {
       ...message,
       id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toISOString(),
-      serverReceived: new Date().toISOString(),
-      origin: req.headers.origin
+      serverReceived: new Date().toISOString()
     };
     
     storage.chatMessages.push(newMessage);
     
-    // Manter apenas as últimas 500 mensagens
-    if (storage.chatMessages.length > 500) {
-      storage.chatMessages = storage.chatMessages.slice(-500);
+    // Manter apenas as últimas 200 mensagens
+    if (storage.chatMessages.length > 200) {
+      storage.chatMessages = storage.chatMessages.slice(-200);
     }
     
     console.log('✅ Mensagem armazenada. Total:', storage.chatMessages.length);
@@ -254,15 +188,13 @@ app.post('/chat-messages', (req, res) => {
     res.json({ 
       success: true, 
       message: newMessage,
-      totalMessages: storage.chatMessages.length,
-      timestamp: new Date().toISOString()
+      totalMessages: storage.chatMessages.length
     });
   } catch (error) {
     console.error('❌ Erro ao processar mensagem:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message,
-      timestamp: new Date().toISOString()
+      error: error.message
     });
   }
 });
@@ -282,14 +214,12 @@ app.get('/status', (req, res) => {
       status: 'online',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      startTime: storage.serverStartTime,
-      environment: process.env.NODE_ENV || 'development'
+      startTime: storage.serverStartTime
     },
     connections: {
       totalUsers: storage.onlineUsers.length,
       activeUsers: activeUsers.length,
-      totalMessages: storage.chatMessages.length,
-      lastActivity: new Date(storage.lastActivity).toISOString()
+      totalMessages: storage.chatMessages.length
     },
     deployment: {
       frontend: 'https://essentia-community.netlify.app',
@@ -298,8 +228,7 @@ app.get('/status', (req, res) => {
     },
     cors: {
       enabled: true,
-      allowedOrigins: ['https://essentia-community.netlify.app', 'localhost:*'],
-      preflight: 'active'
+      allowedOrigins: ['https://essentia-community.netlify.app']
     }
   };
   
@@ -311,25 +240,24 @@ app.get('/status', (req, res) => {
 app.get('/api-info', (req, res) => {
   const apiInfo = {
     service: 'Dr.Nutri Community API',
-    version: '2.2.0',
+    version: '2.3.0',
     status: 'operational',
     endpoints: {
-      health: { method: 'GET', path: '/health', description: 'Health check detalhado' },
-      test: { method: 'GET', path: '/test-connection', description: 'Teste de conexão' },
-      status: { method: 'GET', path: '/status', description: 'Status do servidor' },
-      onlineUsers: [
-        { method: 'GET', path: '/online-users', description: 'Listar usuários online' },
-        { method: 'POST', path: '/online-users', description: 'Adicionar/atualizar usuário' }
-      ],
-      chatMessages: [
-        { method: 'GET', path: '/chat-messages', description: 'Obter mensagens' },
-        { method: 'POST', path: '/chat-messages', description: 'Enviar mensagem' }
-      ]
+      health: '/health',
+      test: '/test',
+      status: '/status',
+      onlineUsers: {
+        GET: '/online-users',
+        POST: '/online-users'
+      },
+      chatMessages: {
+        GET: '/chat-messages', 
+        POST: '/chat-messages'
+      }
     },
     cors: {
       allowedOrigins: ['https://essentia-community.netlify.app'],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+      credentials: true
     },
     frontend: 'https://essentia-community.netlify.app'
   };
@@ -343,40 +271,40 @@ app.get('/', (req, res) => {
     message: '🚀 Dr.Nutri Community Backend API',
     status: 'online',
     frontend: 'https://essentia-community.netlify.app',
-    version: '2.2.0',
+    version: '2.3.0',
     timestamp: new Date().toISOString(),
     quickStart: {
-      testConnection: '/test-connection',
-      healthCheck: '/health',
+      test: '/test',
+      health: '/health',
       apiInfo: '/api-info',
       status: '/status'
-    },
-    documentation: 'Consulte /api-info para detalhes completos'
+    }
   });
+});
+
+// Handler para OPTIONS (preflight)
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'https://essentia-community.netlify.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).send();
 });
 
 // Middleware de erro global
 app.use((error, req, res, next) => {
-  console.error('💥 Erro global:', {
-    message: error.message,
-    stack: error.stack,
-    url: req.url,
-    origin: req.headers.origin,
-    method: req.method
-  });
+  console.error('💥 Erro global:', error.message);
   
   res.status(500).json({
     success: false,
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' ? 'Algo deu errado' : error.message,
-    timestamp: new Date().toISOString(),
-    path: req.path
+    message: error.message
   });
 });
 
 // Rota não encontrada
 app.use('*', (req, res) => {
-  console.log('🔍 Rota não encontrada:', req.originalUrl, 'Origin:', req.headers.origin);
+  console.log('🔍 Rota não encontrada:', req.originalUrl);
   
   res.status(404).json({
     success: false,
@@ -384,35 +312,33 @@ app.use('*', (req, res) => {
     requested: req.originalUrl,
     availableEndpoints: [
       '/health',
-      '/test-connection',
+      '/test',
       '/status',
       '/api-info',
       '/online-users',
       '/chat-messages'
-    ],
-    timestamp: new Date().toISOString()
+    ]
   });
 });
 
 // Inicialização do servidor
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log('='.repeat(80));
-  console.log('🚀 SERVIDOR DR.NUTRI COMMUNITY - CONFIGURADO');
-  console.log('='.repeat(80));
+  console.log('='.repeat(70));
+  console.log('🚀 SERVIDOR DR.NUTRI COMMUNITY - NETLIFY + RENDER');
+  console.log('='.repeat(70));
   console.log(`✅ Backend:  https://back-dnutri-community.onrender.com`);
   console.log(`🎯 Frontend: https://essentia-community.netlify.app`);
   console.log(`🔢 Porta:    ${PORT}`);
   console.log(`⏱️  Timeout: ${RENDER_TIMEOUT}ms`);
-  console.log(`🌐 CORS:     Configurado para Netlify`);
-  console.log('='.repeat(80));
-  console.log('📋 ENDPOINTS PARA TESTE:');
-  console.log('   • /test-connection - Teste básico de conexão');
-  console.log('   • /health          - Health check detalhado');
-  console.log('   • /status          - Status completo');
-  console.log('   • /api-info        - Documentação da API');
-  console.log('='.repeat(80));
-  console.log('🔄 Aguardando conexões do frontend...');
-  console.log('='.repeat(80));
+  console.log('='.repeat(70));
+  console.log('📋 ENDPOINTS PRINCIPAIS:');
+  console.log('   • /test          - Teste de conexão');
+  console.log('   • /health        - Health check');
+  console.log('   • /online-users  - Usuários online (ARRAY)');
+  console.log('   • /chat-messages - Mensagens (ARRAY)');
+  console.log('='.repeat(70));
+  console.log('🔄 Aguardando conexões do Netlify...');
+  console.log('='.repeat(70));
 });
 
 // Configurações otimizadas para Render
@@ -422,7 +348,7 @@ server.headersTimeout = 120000;
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🔄 Recebido SIGTERM, encerrando graciosamente...');
+  console.log('🔄 Recebido SIGTERM, encerrando...');
   server.close(() => {
     console.log('✅ Servidor encerrado.');
     process.exit(0);
@@ -440,29 +366,21 @@ process.on('SIGINT', () => {
 // Keep-alive para manter servidor ativo
 setInterval(() => {
   storage.lastActivity = Date.now();
-  console.log('🫀 Keep-alive - Servidor ativo:', {
-    users: storage.onlineUsers.length,
-    messages: storage.chatMessages.length,
-    uptime: Math.round(process.uptime()) + 's'
-  });
+  console.log('🫀 Keep-alive - Servidor ativo');
 }, KEEP_ALIVE_INTERVAL);
 
 // Log de status a cada 2 minutos
 setInterval(() => {
   const activeUsers = storage.onlineUsers.filter(user => {
     const lastSeen = new Date(user.lastSeen).getTime();
-    return lastSeen > (Date.now() - 600000); // 10 minutos
+    return lastSeen > (Date.now() - 600000);
   });
   
-  console.log('📊 STATUS PERIÓDICO:', {
-    frontend: 'essentia-community.netlify.app',
-    users: {
-      total: storage.onlineUsers.length,
-      active: activeUsers.length
-    },
+  console.log('📊 STATUS:', {
+    users: storage.onlineUsers.length,
+    activeUsers: activeUsers.length,
     messages: storage.chatMessages.length,
-    uptime: Math.round(process.uptime()) + 's',
-    memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB'
+    uptime: Math.round(process.uptime()) + 's'
   });
 }, 120000);
 
